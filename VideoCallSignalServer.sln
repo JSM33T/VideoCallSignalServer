@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35122.118
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoCallSignalServer", "VideoCallSignalServer\VideoCallSignalServer.csproj", "{2460684D-6FCF-460D-B3D6-67AEC150809C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2460684D-6FCF-460D-B3D6-67AEC150809C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2460684D-6FCF-460D-B3D6-67AEC150809C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2460684D-6FCF-460D-B3D6-67AEC150809C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2460684D-6FCF-460D-B3D6-67AEC150809C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8183D56C-5FA9-4458-B38D-F5EF6CEB5952}
+	EndGlobalSection
+EndGlobal

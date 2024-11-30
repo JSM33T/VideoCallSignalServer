@@ -1,0 +1,6 @@
+@VideoCallSignalServer_HostAddress = http://localhost:5210
+
+GET {{VideoCallSignalServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -39,6 +39,21 @@ function setupSignalHandlers() {
         }
     });
 
+    connection.on("OnlineUsersList", function (users) {
+        const onlineUsersSpan = document.getElementById("onlineUsers");
+        onlineUsersSpan.innerHTML = ''; // Clear previous list
+
+        if (users.length > 0) {
+            users.forEach(user => {
+                const userElement = document.createElement("span");
+                userElement.classList.add('badge', 'bg-success', 'me-2');
+                userElement.textContent = user;
+                onlineUsersSpan.appendChild(userElement);
+            });
+        } else {
+            onlineUsersSpan.textContent = 'No users online currently.';
+        }
+    });
     // Listen for a notification that all calls have ended
     connection.on("AllCallsEnded", function () {
         alert("All calls have been ended.");

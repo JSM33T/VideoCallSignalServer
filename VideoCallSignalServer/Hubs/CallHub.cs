@@ -9,7 +9,19 @@ namespace VideoCallSignalServer.Hubs
         // Dictionary to store meeting IDs and a HashSet of connection IDs
         private static readonly ConcurrentDictionary<string, HashSet<string>> Meetings = new();
 
-        // Create a meeting and add the creator to the meeting
+        //list of online users
+        private static readonly ConcurrentDictionary<string, string> OnlineUsers = new();
+
+        public override async Task OnConnectedAsync()
+        {
+            // Add the connected user
+            OnlineUsers[Context.ConnectionId] = Context.ConnectionId;
+
+            // Notify all clients about the updated online users
+            await BroadcastOnlineUsers();
+
+            await base.OnConnectedAsync();
+        }
         public async Task CreateMeeting(string meetingId)
         {
             if (!Meetings.ContainsKey(meetingId))
@@ -55,18 +67,27 @@ namespace VideoCallSignalServer.Hubs
         // On disconnection, clean up the user's data
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
+            OnlineUsers.TryRemove(Context.ConnectionId, out _);
+
             foreach (var meeting in Meetings)
             {
                 if (meeting.Value.Remove(Context.ConnectionId) && meeting.Value.Count == 0)
                     Meetings.TryRemove(meeting.Key, out _); // Remove empty meeting
             }
-
+            //broadcast online users
+            await BroadcastOnlineUsers();
             // Broadcast active meetings to all connected clients
             await BroadcastActiveMeetings();
 
             await base.OnDisconnectedAsync(exception);
         }
 
+        // Broadcast online users
+        private async Task BroadcastOnlineUsers()
+        {
+            var onlineUsers = OnlineUsers.Values.ToList();
+            await Clients.All.SendAsync("OnlineUsersList", onlineUsers);
+        }
         // Broadcast the active meetings to all connected clients
         private async Task BroadcastActiveMeetings()
         {

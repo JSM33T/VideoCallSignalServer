@@ -1,7 +1,7 @@
 ﻿const ownIdElement = document.getElementById('ownId');
-const roomIdInput = document.getElementById('roomId');
-const createRoomBtn = document.getElementById('createRoomBtn');
-const joinRoomBtn = document.getElementById('joinRoomBtn');
+const meetingIdInput = document.getElementById('meetingId');
+const createMeetingBtn = document.getElementById('createMeetingBtn');
+const joinMeetingBtn = document.getElementById('joinMeetingBtn');
 const endCallBtn = document.getElementById('endCallBtn');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
@@ -23,26 +23,26 @@ async function initializeSignalR() {
 // SignalR event handlers
 function setupSignalHandlers() {
 
-    connection.on("ActiveRoomsList", function (rooms) {
-        const activeRoomsSpan = document.getElementById("activeRooms");
-        activeRoomsSpan.innerHTML = ''; // Clear previous list
+    connection.on("ActiveMeetingsList", function (meetings) {
+        const activeMeetingsSpan = document.getElementById("activeMeetings");
+        activeMeetingsSpan.innerHTML = ''; // Clear previous list
 
-        if (rooms.length > 0) {
-            rooms.forEach(room => {
-                const roomElement = document.createElement("span");
-                roomElement.classList.add('badge', 'bg-primary', 'me-2');
-                roomElement.textContent = room;
-                activeRoomsSpan.appendChild(roomElement);
+        if (meetings.length > 0) {
+            meetings.forEach(meeting => {
+                const meetingElement = document.createElement("span");
+                meetingElement.classList.add('badge', 'bg-primary', 'me-2');
+                meetingElement.textContent = meeting;
+                activeMeetingsSpan.appendChild(meetingElement);
             });
         } else {
-            activeRoomsSpan.textContent = 'No active rooms currently.';
+            activeMeetingsSpan.textContent = 'No active meetings currently.';
         }
     });
 
     // Listen for a notification that all calls have ended
     connection.on("AllCallsEnded", function () {
         alert("All calls have been ended.");
-        document.getElementById("activeRooms").textContent = 'No active rooms currently.';
+        document.getElementById("activeMeetings").textContent = 'No active meetings currently.';
     });
 
 
@@ -57,8 +57,8 @@ function setupSignalHandlers() {
     });
 
 
-    connection.on("RoomCreated", (roomId) => {
-        alert(`Room created: ${roomId}. Share this ID to connect.`);
+    connection.on("MeetingCreated", (meetingId) => {
+        alert(`Meeting created: ${meetingId}. Share this ID to connect.`);
     });
 
     connection.on("UserJoined", (userId) => {
@@ -75,7 +75,7 @@ function setupSignalHandlers() {
             await peerConnection.setRemoteDescription(new RTCSessionDescription(message));
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
-            connection.invoke("SendSignal", roomIdInput.value, JSON.stringify(answer));
+            connection.invoke("SendSignal", meetingIdInput.value, JSON.stringify(answer));
         } else if (message.type === "answer") {
             console.log("Received answer:", message);
             await peerConnection.setRemoteDescription(new RTCSessionDescription(message));
@@ -90,21 +90,21 @@ function setupSignalHandlers() {
     });
 }
 
-// Create a new room
-async function createRoom() {
-    const roomId = roomIdInput.value || Math.random().toString(36).substring(2, 10);
-    await connection.invoke("CreateRoom", roomId);
-    roomIdInput.value = roomId;
+// Create a new meeting
+async function createMeeting() {
+    const meetingId = meetingIdInput.value || Math.random().toString(36).substring(2, 10);
+    await connection.invoke("CreateMeeting", meetingId);
+    meetingIdInput.value = meetingId;
 }
 
-// Join an existing room
-async function joinRoom() {
-    const roomId = roomIdInput.value;
-    if (!roomId) {
-        alert("Enter a room ID to join.");
+// Join an existing meeting
+async function joinMeeting() {
+    const meetingId = meetingIdInput.value;
+    if (!meetingId) {
+        alert("Enter a meeting ID to join.");
         return;
     }
-    await connection.invoke("JoinRoom", roomId);
+    await connection.invoke("JoinMeeting", meetingId);
 }
 
 // Set up WebRTC
@@ -146,7 +146,7 @@ async function setupWebRTC(isCaller) {
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
             console.log("Sending ICE candidate:", event.candidate);
-            connection.invoke("SendSignal", roomIdInput.value, JSON.stringify(event.candidate));
+            connection.invoke("SendSignal", meetingIdInput.value, JSON.stringify(event.candidate));
         }
     };
 
@@ -155,7 +155,7 @@ async function setupWebRTC(isCaller) {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         console.log("Sending offer:", offer);
-        connection.invoke("SendSignal", roomIdInput.value, JSON.stringify(offer));
+        connection.invoke("SendSignal", meetingIdInput.value, JSON.stringify(offer));
     }
 
     endCallBtn.disabled = false;
@@ -182,9 +182,9 @@ function stopCurrentCall() {
     localVideo.srcObject = null;
     remoteVideo.srcObject = null;
 
-    // Optionally, you can disconnect from the room or group here
+    // Optionally, you can disconnect from the meeting or group here
     // If you're using SignalR groups, you may want to remove the user from the group as well.
-    // connection.invoke("LeaveRoom", roomId);
+    // connection.invoke("LeaveMeeting", meetingId);
 }
 
 // End the call
@@ -199,8 +199,8 @@ function endCall() {
     endCallBtn.disabled = true;
 }
 
-createRoomBtn.addEventListener("click", createRoom);
-joinRoomBtn.addEventListener("click", joinRoom);
+createMeetingBtn.addEventListener("click", createMeeting);
+joinMeetingBtn.addEventListener("click", joinMeeting);
 endCallBtn.addEventListener("click", endCall);
 
 // Initialize SignalR

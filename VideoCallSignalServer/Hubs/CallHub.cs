@@ -1,63 +1,4 @@
-﻿//using Microsoft.AspNetCore.SignalR;
-
-//namespace VideoCallSignalServer.Hubs
-//{
-//    using Microsoft.AspNetCore.SignalR;
-//    using System.Collections.Concurrent;
-
-//    public class CallHub : Hub
-//    {
-//        private static readonly ConcurrentDictionary<string, HashSet<string>> Rooms = new();
-
-//        public async Task CreateRoom(string roomId)
-//        {
-//            // Add the user to the specified room
-//            if (!Rooms.ContainsKey(roomId))
-//                Rooms[roomId] = new HashSet<string>();
-
-//            Rooms[roomId].Add(Context.ConnectionId);
-//            await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-
-//            // Notify the creator that the room is ready
-//            await Clients.Caller.SendAsync("RoomCreated", roomId);
-//        }
-
-//        public async Task JoinRoom(string roomId)
-//        {
-//            if (Rooms.TryGetValue(roomId, out var connections))
-//            {
-//                Rooms[roomId].Add(Context.ConnectionId);
-//                await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-
-//                // Notify others in the room about the new connection
-//                await Clients.OthersInGroup(roomId).SendAsync("UserJoined", Context.ConnectionId);
-//            }
-//            else
-//            {
-//                // Room doesn't exist
-//                await Clients.Caller.SendAsync("Error", "Room not found.");
-//            }
-//        }
-
-//        public async Task SendSignal(string roomId, string signalData)
-//        {
-//            // Relay signaling data to other users in the room
-//            await Clients.OthersInGroup(roomId).SendAsync("ReceiveSignal", Context.ConnectionId, signalData);
-//        }
-
-//        public override async Task OnDisconnectedAsync(Exception? exception)
-//        {
-//            // Remove user from all rooms they belong to
-//            foreach (var room in Rooms)
-//            {
-//                if (room.Value.Remove(Context.ConnectionId) && room.Value.Count == 0)
-//                    Rooms.TryRemove(room.Key, out _); // Remove empty room
-//            }
-
-//            await base.OnDisconnectedAsync(exception);
-//        }
-//    }
-//}
+﻿
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 
@@ -65,85 +6,85 @@ namespace VideoCallSignalServer.Hubs
 {
     public class CallHub : Hub
     {
-        // Dictionary to store room IDs and a HashSet of connection IDs
-        private static readonly ConcurrentDictionary<string, HashSet<string>> Rooms = new();
+        // Dictionary to store meeting IDs and a HashSet of connection IDs
+        private static readonly ConcurrentDictionary<string, HashSet<string>> Meetings = new();
 
-        // Create a room and add the creator to the room
-        public async Task CreateRoom(string roomId)
+        // Create a meeting and add the creator to the meeting
+        public async Task CreateMeeting(string meetingId)
         {
-            if (!Rooms.ContainsKey(roomId))
-                Rooms[roomId] = new HashSet<string>();
+            if (!Meetings.ContainsKey(meetingId))
+                Meetings[meetingId] = new HashSet<string>();
 
-            Rooms[roomId].Add(Context.ConnectionId);
-            await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
+            Meetings[meetingId].Add(Context.ConnectionId);
+            await Groups.AddToGroupAsync(Context.ConnectionId, meetingId);
 
-            // Notify the creator that the room is created
-            await Clients.Caller.SendAsync("RoomCreated", roomId);
+            // Notify the creator that the meeting is created
+            await Clients.Caller.SendAsync("MeetingCreated", meetingId);
 
-            // Broadcast active rooms to all connected clients
-            await BroadcastActiveRooms();
+            // Broadcast active meetings to all connected clients
+            await BroadcastActiveMeetings();
         }
 
-        // Join an existing room
-        public async Task JoinRoom(string roomId)
+        // Join an existing meeting
+        public async Task JoinMeeting(string meetingId)
         {
-            if (Rooms.TryGetValue(roomId, out var connections))
+            if (Meetings.TryGetValue(meetingId, out var connections))
             {
-                Rooms[roomId].Add(Context.ConnectionId);
-                await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
+                Meetings[meetingId].Add(Context.ConnectionId);
+                await Groups.AddToGroupAsync(Context.ConnectionId, meetingId);
 
-                // Notify others in the room about the new user
-                await Clients.OthersInGroup(roomId).SendAsync("UserJoined", Context.ConnectionId);
+                // Notify others in the meeting about the new user
+                await Clients.OthersInGroup(meetingId).SendAsync("UserJoined", Context.ConnectionId);
             }
             else
             {
-                // Room doesn't exist
-                await Clients.Caller.SendAsync("Error", "Room not found.");
+                // Meeting doesn't exist
+                await Clients.Caller.SendAsync("Error", "Meeting not found.");
             }
 
-            // Broadcast active rooms to all connected clients
-            await BroadcastActiveRooms();
+            // Broadcast active meetings to all connected clients
+            await BroadcastActiveMeetings();
         }
 
-        // Send signal data to other users in the room
-        public async Task SendSignal(string roomId, string signalData)
+        // Send signal data to other users in the meeting
+        public async Task SendSignal(string meetingId, string signalData)
         {
-            await Clients.OthersInGroup(roomId).SendAsync("ReceiveSignal", Context.ConnectionId, signalData);
+            await Clients.OthersInGroup(meetingId).SendAsync("ReceiveSignal", Context.ConnectionId, signalData);
         }
 
         // On disconnection, clean up the user's data
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            foreach (var room in Rooms)
+            foreach (var meeting in Meetings)
             {
-                if (room.Value.Remove(Context.ConnectionId) && room.Value.Count == 0)
-                    Rooms.TryRemove(room.Key, out _); // Remove empty room
+                if (meeting.Value.Remove(Context.ConnectionId) && meeting.Value.Count == 0)
+                    Meetings.TryRemove(meeting.Key, out _); // Remove empty meeting
             }
 
-            // Broadcast active rooms to all connected clients
-            await BroadcastActiveRooms();
+            // Broadcast active meetings to all connected clients
+            await BroadcastActiveMeetings();
 
             await base.OnDisconnectedAsync(exception);
         }
 
-        // Broadcast the active rooms to all connected clients
-        private async Task BroadcastActiveRooms()
+        // Broadcast the active meetings to all connected clients
+        private async Task BroadcastActiveMeetings()
         {
-            var activeRooms = Rooms.Keys.ToList();
-            await Clients.All.SendAsync("ActiveRoomsList", activeRooms);
+            var activeMeetings = Meetings.Keys.ToList();
+            await Clients.All.SendAsync("ActiveMeetingsList", activeMeetings);
         }
 
         public async Task EndAllCalls()
         {
-            foreach (var room in Rooms)
+            foreach (var meeting in Meetings)
             {
-                foreach (var connectionId in room.Value)
+                foreach (var connectionId in meeting.Value)
                 {
                     await Clients.Client(connectionId).SendAsync("StopCall");
                 }
             }
 
-            Rooms.Clear();
+            Meetings.Clear();
 
             await Clients.All.SendAsync("AllCallsEnded");
         }

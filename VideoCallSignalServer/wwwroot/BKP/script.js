@@ -113,7 +113,12 @@ async function setupWebRTC(isCaller) {
 
     peerConnection = new RTCPeerConnection({
         iceServers: [
-            { urls: "stun:stun.l.google.com:19302" }
+            { urls: "stun:stun.l.google.com:19302" },
+             {
+                 urls: "relay1.expressturn.com:3478",  // Custom TURN server URL
+                 username: "ef3S2YUXNMIXGRD6RA",  // Username for TURN server
+                 credential: "5SXZnepOT14HKbeS"   // Password for TURN server
+            }
         ]
     });
 

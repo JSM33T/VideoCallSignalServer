@@ -1,6 +1,5 @@
 ﻿const ownIdElement = document.getElementById('ownId');
 const meetingIdInput = document.getElementById('meetingId');
-const customIdInput = document.getElementById('customId'); // Add this input to your HTML
 const createMeetingBtn = document.getElementById('createMeetingBtn');
 const joinMeetingBtn = document.getElementById('joinMeetingBtn');
 const endCallBtn = document.getElementById('endCallBtn');
@@ -9,24 +8,10 @@ const remoteVideo = document.getElementById('remoteVideo');
 
 let connection, peerConnection, localStream;
 
-const users = [
-    {
-        "user": "Jasmeet",
-        "email" : "jasmeet.s@revalsys.com"
-    },
-    {
-        "user": "Madhukar",
-        "email":"madhukarreddy.b@revalsys.com"
-    },
-    {
-        "user": "Sohail",
-        "email": "madhukarreddy.b@revalsys.com"
-    },
-]
 // Initialize SignalR connection
 async function initializeSignalR() {
     connection = new signalR.HubConnectionBuilder()
-        .withUrl("/enhancedCallHub")
+        .withUrl("/callHub")
         .build();
 
     await connection.start();
@@ -37,6 +22,7 @@ async function initializeSignalR() {
 
 // SignalR event handlers
 function setupSignalHandlers() {
+
     connection.on("ActiveMeetingsList", function (meetings) {
         const activeMeetingsSpan = document.getElementById("activeMeetings");
         activeMeetingsSpan.innerHTML = ''; // Clear previous list
@@ -45,11 +31,7 @@ function setupSignalHandlers() {
             meetings.forEach(meeting => {
                 const meetingElement = document.createElement("span");
                 meetingElement.classList.add('badge', 'bg-primary', 'me-2');
-                // Display both meeting ID and custom ID if available
-                const displayText = meeting.customId ?
-                    `${meeting.meetingId} (${meeting.customId})` :
-                    meeting.meetingId;
-                meetingElement.textContent = displayText;
+                meetingElement.textContent = meeting;
                 activeMeetingsSpan.appendChild(meetingElement);
             });
         } else {
@@ -57,31 +39,30 @@ function setupSignalHandlers() {
         }
     });
 
-    connection.on("CallRequest", function (customId) {
-        // Handle incoming call request from related room
-        const shouldAccept = confirm(`Incoming call request from room ${customId}. Accept?`);
-        if (shouldAccept) {
-            // You might want to automatically join the meeting or handle it differently
-            console.log("Call request accepted from:", customId);
-        }
-    });
-
+    // Listen for a notification that all calls have ended
     connection.on("AllCallsEnded", function () {
         alert("All calls have been ended.");
         document.getElementById("activeMeetings").textContent = 'No active meetings currently.';
     });
 
+
+    // Button click to end all calls
+    document.getElementById('endAllCallsBtn').addEventListener('click', function () {
+        connection.invoke("EndAllCalls").catch(err => console.error(err));
+    });
+
+
     connection.on("StopCall", function () {
-        stopCurrentCall();
+        stopCurrentCall(); // Stop the current call and close the video stream
     });
 
-    connection.on("MeetingCreated", (meetingId, customId) => {
-        const displayId = customId ? `${meetingId} (${customId})` : meetingId;
-        alert(`Meeting created: ${displayId}. Share this ID to connect.`);
+
+    connection.on("MeetingCreated", (meetingId) => {
+        alert(`Meeting created: ${meetingId}. Share this ID to connect.`);
     });
 
-    connection.on("UserJoined", (userId, customId) => {
-        console.log(`User joined: ${userId}${customId ? ` with custom ID: ${customId}` : ''}`);
+    connection.on("UserJoined", (userId) => {
+        console.log(`User joined: ${userId}`);
         setupWebRTC(true); // Initialize WebRTC as caller
     });
 
@@ -112,8 +93,7 @@ function setupSignalHandlers() {
 // Create a new meeting
 async function createMeeting() {
     const meetingId = meetingIdInput.value || Math.random().toString(36).substring(2, 10);
-    const customId = customIdInput.value || ''; // Get custom ID if provided
-    await connection.invoke("CreateMeeting", meetingId, customId);
+    await connection.invoke("CreateMeeting", meetingId);
     meetingIdInput.value = meetingId;
 }
 
@@ -127,9 +107,9 @@ async function joinMeeting() {
     await connection.invoke("JoinMeeting", meetingId);
 }
 
-// Rest of your existing WebRTC setup and handling code remains the same
+// Set up WebRTC
 async function setupWebRTC(isCaller) {
-    if (peerConnection) return;
+    if (peerConnection) return; // Avoid multiple initializations
 
     peerConnection = new RTCPeerConnection({
         iceServers: [
@@ -137,14 +117,17 @@ async function setupWebRTC(isCaller) {
         ]
     });
 
+    // Add local stream to PeerConnection
+
     const mediaSpecs = {
         video: {
-            width: { ideal: 480 },
-            height: { ideal: 360 },
-            frameRate: { ideal: 12 },
+            width: { ideal: 480 }, 
+            height: { ideal: 360 },  
+            frameRate: { ideal: 12 }, 
         },
         audio: true
     };
+
 
     localStream = await navigator.mediaDevices.getUserMedia(mediaSpecs);
     localVideo.srcObject = localStream;
@@ -153,11 +136,13 @@ async function setupWebRTC(isCaller) {
         peerConnection.addTrack(track, localStream);
     });
 
+    // Handle remote stream
     peerConnection.ontrack = (event) => {
         console.log("Received remote stream:", event.streams[0]);
         remoteVideo.srcObject = event.streams[0];
     };
 
+    // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
             console.log("Sending ICE candidate:", event.candidate);
@@ -165,6 +150,7 @@ async function setupWebRTC(isCaller) {
         }
     };
 
+    // Create and send SDP offer if caller
     if (isCaller) {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
@@ -176,6 +162,10 @@ async function setupWebRTC(isCaller) {
 }
 
 function stopCurrentCall() {
+    // Stop local video and remote video
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+
     if (localVideo.srcObject) {
         let stream = localVideo.srcObject;
         let tracks = stream.getTracks();
@@ -188,10 +178,16 @@ function stopCurrentCall() {
         tracks.forEach(track => track.stop());
     }
 
+    // Reset the video elements to blank
     localVideo.srcObject = null;
     remoteVideo.srcObject = null;
+
+    // Optionally, you can disconnect from the meeting or group here
+    // If you're using SignalR groups, you may want to remove the user from the group as well.
+    // connection.invoke("LeaveMeeting", meetingId);
 }
 
+// End the call
 function endCall() {
     if (peerConnection) {
         peerConnection.close();

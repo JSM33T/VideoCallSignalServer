@@ -30,6 +30,7 @@ app.MapControllers();
 
 app.MapFallbackToFile("index.html");
 
-app.MapHub<CallHub>("/callHub");
+//app.MapHub<CallHub>("/callHub");
+app.MapHub<CallHub>("/enhancedCallHub");
 
 app.Run();
